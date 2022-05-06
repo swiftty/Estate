@@ -11,7 +11,15 @@ public struct Effect<Value>: Sendable where Value: Sendable {
     }
     public struct Yield: Sendable {
         public struct Context: Sendable {
-            public let tasks: [Task<Void, Error>]
+            public var tasks: [Task<Void, Error>] {
+                snapshotID == nil ? [] : snapshotTasks[snapshotID] ?? []
+            }
+            public func tasks(for id: ID) -> [Task<Void, Error>] {
+                snapshotTasks[id] ?? []
+            }
+
+            let snapshotID: ID?
+            let snapshotTasks: [ID?: [Task<Void, Error>]]
         }
         public let context: Context
 

@@ -63,7 +63,10 @@ public final class Store<
         #endif
         let effect = composer.mutate(state: state, action: newAction)
         logger.debug("send \(String(describing: newAction))")
-        let context = Effect<Mutation<State>>.Yield.Context(tasks: effect.id == nil ? [] : tasks[effect.id] ?? [])
+        let context = Effect<Mutation<State>>.Yield.Context(
+            snapshotID: effect.id,
+            snapshotTasks: tasks
+        )
         guard let mutations = effect.run(with: context) else {
             return Task {}
         }
