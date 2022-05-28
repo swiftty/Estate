@@ -52,8 +52,8 @@ public struct Effect<Value>: Sendable where Value: Sendable {
     }
 
     private init(_id id: ID?,
-                 revert: (@Sendable (Error) -> Bool)?,
-                 runner: @escaping @Sendable (Yield.Context, @Sendable (Continuation) -> Void) async throws -> Void) {
+                 runner: @escaping @Sendable (Yield.Context, @Sendable (Continuation) -> Void) async throws -> Void,
+                 onRevert revert: (@Sendable (Error) -> Bool)?) {
         self.init(_id: id, revert: revert, kind: .executor(runner))
     }
 
@@ -81,25 +81,25 @@ public struct Effect<Value>: Sendable where Value: Sendable {
 
 extension Effect {
     public init(id: ID? = nil,
-                revert: (@Sendable (Error) -> Bool)? = nil,
-                runner: @escaping @Sendable (Yield) async throws -> Void) {
-        self.init(_id: id, revert: revert) { context, notify in
+                runner: @escaping @Sendable (Yield) async throws -> Void,
+                onRevert revert: (@Sendable (Error) -> Bool)? = nil) {
+        self.init(_id: id, runner: { context, notify in
             try await withoutActuallyEscaping(notify) { notify in
                 try await runner(.init(context: context) {
                     notify(.value($0, $1))
                 })
                 notify(.finish)
             }
-        }
+        }, onRevert: revert)
     }
 }
 
 extension Effect {
     public static func value(id: ID? = nil, _ value: @escaping @Sendable (Yield.Context) async throws -> Value) -> Self {
-        self.init(_id: id, revert: nil) { context, notify in
+        self.init(_id: id, runner: { context, notify in
             notify(.value(try await value(context), false))
             notify(.finish)
-        }
+        }, onRevert: nil)
     }
 
     public static func just(id: ID? = nil, _ value: @escaping @autoclosure @Sendable () -> Value) -> Self {
