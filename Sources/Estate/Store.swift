@@ -131,15 +131,45 @@ public final class Store<
         }
     }
 
-    func waitForAllTasks() async throws {
-        try await tasks.values.flatMap { $0 }.waitForAll()
+    func waitForAllTasks() async {
+        await tasks.values.flatMap { $0 }.waitForAll()
+    }
+}
+
+extension Store {
+    @discardableResult
+    public func send(_ actions: [Action]) -> Task<Void, Error> {
+        Task {
+            let errors = await withTaskGroup(of: Result<Void, Error>.self, returning: [Error].self) { group in
+                for action in actions {
+                    let task = send(action)
+                    group.addTask {
+                        await task.result
+                    }
+                }
+                var errors: [Error] = []
+                for await case .failure(let error) in group {
+                    errors.append(error)
+                }
+                return errors
+            }
+            if let error = errors.first {
+                throw error
+            }
+        }
+    }
+
+    @discardableResult
+    @_disfavoredOverload
+    public func send(_ actions: Action...) -> Task<Void, Error> {
+        send(actions)
     }
 }
 
 #if DEBUG
 extension Store {
     public func replay(duration milliseconds: UInt64) async {
-        try? await waitForAllTasks()
+        await waitForAllTasks()
         assert(tasks.values.flatMap { $0 }.isEmpty)
         await Task.yield()
         isReplaying = true
