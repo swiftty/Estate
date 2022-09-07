@@ -38,14 +38,14 @@ public final class Store<
     }
     #endif
 
-    private let composer: AnyComposer<State, Action>
+    private let composer: any Composable<State, Action>
     private let logger: Logger
 
     public init<Composer: Composable>(initialState state: State, composer: Composer, logger: Logger = .init(.disabled))
     where State == Composer.State, Action == Composer.Action {
         self.initialState = state
         self.stableState = initialState
-        self.composer = AnyComposer(composer)
+        self.composer = composer
         self.logger = logger
     }
 
