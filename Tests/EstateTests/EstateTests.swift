@@ -43,7 +43,7 @@ class EstateTests: XCTestCase {
                 switch action {
                 case .incr(let val):
                     struct Key: Hashable {}
-                    return Effect(id: .init(Key())) { yield in
+                    return Effect(id: Key()) { yield in
                         yield {
                             $0.count += 1 * val
                         }

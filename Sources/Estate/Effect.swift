@@ -24,6 +24,7 @@ public struct Effect<Value>: Sendable where Value: Sendable {
 
             let snapshotID: ID?
             let snapshotTasks: [ID?: [Task<Void, Error>]]
+            let actionSender: @Sendable (Any) -> Task<Void, Error>
         }
         public let context: Context
 
@@ -31,6 +32,10 @@ public struct Effect<Value>: Sendable where Value: Sendable {
 
         public func callAsFunction(stable: Bool = false, _ value: Value) {
             runner(value, stable)
+        }
+
+        public func send<T>(_ action: T) -> Task<Void, Error> {
+            context.actionSender(action)
         }
     }
     public let id: ID?

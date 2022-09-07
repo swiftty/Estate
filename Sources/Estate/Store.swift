@@ -65,7 +65,13 @@ public final class Store<
         logger.debug("send \(String(describing: newAction))")
         let context = Effect<Mutation<State>>.Yield.Context(
             snapshotID: effect.id,
-            snapshotTasks: tasks
+            snapshotTasks: tasks,
+            actionSender: { [weak self] action in
+                let sender = self?.send as (@MainActor (Action) -> Task<Void, Error>)?
+                return Task { @MainActor in
+                    try await sender?(action as! Action).value
+                }
+            }
         )
         guard let mutations = effect.run(with: context) else {
             return Task {}
