@@ -17,6 +17,10 @@ public struct Effect<Value>: Sendable where Value: Sendable {
             public func tasks(for id: ID) -> [Task<Void, Error>] {
                 snapshotTasks[id] ?? []
             }
+            @_disfavoredOverload
+            public func tasks(for key: some Hashable) -> [Task<Void, Error>] {
+                tasks(for: .init(key))
+            }
 
             let snapshotID: ID?
             let snapshotTasks: [ID?: [Task<Void, Error>]]
@@ -92,6 +96,13 @@ extension Effect {
             }
         }, onRevert: revert)
     }
+
+    @_disfavoredOverload
+    public init(id: some Hashable,
+                runner: @escaping @Sendable (Yield) async throws -> Void,
+                onRevert revert: (@Sendable (Error) -> Bool)? = nil) {
+        self.init(id: .init(id), runner: runner, onRevert: revert)
+    }
 }
 
 extension Effect {
@@ -102,10 +113,20 @@ extension Effect {
         }, onRevert: nil)
     }
 
+    @_disfavoredOverload
+    public static func value(id: some Hashable, _ value: @escaping @Sendable (Yield.Context) async throws -> Value) -> Self {
+        self.value(id: .init(id), value)
+    }
+
     public static func just(id: ID? = nil, _ value: @escaping @autoclosure @Sendable () -> Value) -> Self {
         .value(id: id) { _ in
             value()
         }
+    }
+
+    @_disfavoredOverload
+    public static func just(id: some Hashable, _ value: @escaping @autoclosure @Sendable () -> Value) -> Self {
+        .just(id: .init(id), value())
     }
 }
 
